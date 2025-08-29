@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cardápio</title>
+<style>
+  :root{--bg:#fafafa;--ink:#111;--muted:#666;--line:#e6e6e6;--acc:#111;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+  .brand{display:flex;gap:12px;align-items:center}
+  .mesa{font-weight:700}
+  .cart-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--ink);background:#fff}
+  .cart-count{min-width:20px;height:20px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}
+  main{max-width:900px;margin:0 auto;padding:16px}
+  h2{margin:24px 0 8px}
+  .grid{display:grid;grid-template-columns:1fr auto;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .item-name{font-weight:600}
+  .item-price{color:var(--muted);text-align:right}
+  .add{justify-self:end;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  .muted{color:var(--muted);font-size:.9rem}
+
+  /* ===== Modal de quantidade ===== */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+  .modal h3{margin:0 0 8px}
+  .qty-box{display:flex;align-items:center;justify-content:center;gap:12px;margin:8px 0 16px}
+  .arrow{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center}
+  .qty-val{min-width:48px;text-align:center;font-weight:700;font-size:1.25rem}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{display:inline-block;padding:12px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-weight:700;text-align:center;cursor:pointer}
+  .btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
+  /* ===== Pop do carrinho ===== */
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+  .pop-anim{animation:pop 280ms ease}
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div><span id="cartIcon">☕</span></div>
+      <div>
+        <div><strong>Seu Café</strong></div>
+        <div class="mesa" id="mesaLabel">Mesa —</div>
+      </div>
+    </div>
+    <a id="cartLink" class="cart-btn" href="#">
+      <span id="cartEmoji">🛒</span>
+      <span class="cart-count" id="cartCount">0</span>
+    </a>
+  </header>
+
+  <main>
+    <p class="muted">Escolha os itens e adicione ao carrinho. Depois, finalize na página do carrinho.</p>
+
+    <section>
+      <h2>Cafés</h2>
+      <div class="grid" id="list-cafes"></div>
+    </section>
+
+    <section>
+      <h2>Bebidas Frias</h2>
+      <div class="grid" id="list-frias"></div>
+    </section>
+
+    <section>
+      <h2>Lanches</h2>
+      <div class="grid" id="list-lanches"></div>
+    </section>
+  </main>
+
+  <!-- ===== Modal de quantidade ===== -->
+  <div class="overlay" id="qtyOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="qtyTitle">
+      <h3 id="qtyTitle">Quantidade</h3>
+      <div class="muted" id="qtyItemName">—</div>
+
+      <div class="qty-box">
+        <button class="arrow" id="btnLeft" aria-label="Diminuir">←</button>
+        <div class="qty-val" id="qtyVal">1</div>
+        <button class="arrow" id="btnRight" aria-label="Aumentar">→</button>
+      </div>
+
+      <div class="bar">
+        <button class="btn sec" id="btnCancel" type="button">Cancelar</button>
+        <button class="btn" id="btnConfirm" type="button">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ------- CONFIG DO CARDÁPIO ------- */
+const MENU = {
+  cafes: [
+    { id:"espresso",  nome:"Espresso",     preco:6.00 },
+    { id:"cappuccino",nome:"Cappuccino",   preco:9.00 },
+    { id:"latte",     nome:"Latte",        preco:10.00 }
+  ],
+  frias: [
+    { id:"matcha",    nome:"Matcha Gelado",preco:12.00 },
+    { id:"iced-latte",nome:"Iced Latte",   preco:11.00 }
+  ],
+  lanches: [
+    { id:"pao-chapa", nome:"Pão na Chapa", preco:7.00 },
+    { id:"torta",     nome:"Torta do Dia", preco:9.50 }
+  ]
+};
+
+/* ------- ESTADO / STORAGE ------- */
+const params = new URLSearchParams(location.search);
+const MESA = params.get("mesa") || "—";
+const STORE_KEY = "cafe_cart_v1";
+let cart = loadCart();
+
+function loadCart(){ try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } }
+function saveCart(){ localStorage.setItem(STORE_KEY, JSON.stringify(cart)); }
+function money(n){ return n.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function updateBadge(){
+  const c = cart.reduce((s,i)=> s + i.qtd, 0);
+  document.getElementById("cartCount").textContent = c;
+}
+
+/* ------- RENDER LISTAS ------- */
+function renderList(containerId, items){
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+  items.forEach(item=>{
+    const name = document.createElement('div');
+    name.className = "item-name";
+    name.textContent = item.nome;
+
+    const right = document.createElement('div');
+    right.style.display = "flex";
+    right.style.alignItems = "center";
+    right.style.gap = "8px";
+
+    const price = document.createElement('div');
+    price.className = "item-price";
+    price.textContent = "R$ " + money(item.preco);
+
+    const btn = document.createElement('button');
+    btn.className = "add";
+    btn.textContent = "+ Adicionar";
+    btn.onclick = ()=> openQtyModal(item);
+
+    right.append(price, btn);
+    el.append(name, right);
+  });
+}
+
+/* ------- MODAL DE QUANTIDADE ------- */
+const overlay = document.getElementById('qtyOverlay');
+const qtyValEl = document.getElementById('qtyVal');
+const qtyNameEl = document.getElementById('qtyItemName');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnConfirm = document.getElementById('btnConfirm');
+const btnCancel = document.getElementById('btnCancel');
+let currentItem = null;
+let currentQty = 1;
+
+function openQtyModal(item){
+  currentItem = item;
+  currentQty = 1;
+  qtyValEl.textContent = currentQty;
+  qtyNameEl.textContent = item.nome;
+  overlay.style.display = "flex";
+  overlay.setAttribute('aria-hidden','false');
+}
+
+function closeQtyModal(){
+  overlay.style.display = "none";
+  overlay.setAttribute('aria-hidden','true');
+  currentItem = null;
+}
+
+btnLeft.onclick = ()=>{
+  if(currentQty > 1){ currentQty--; qtyValEl.textContent = currentQty; }
+};
+btnRight.onclick = ()=>{
+  if(currentQty < 20){ currentQty++; qtyValEl.textContent = currentQty; }
+};
+btnCancel.onclick = closeQtyModal;
+
+btnConfirm.onclick = ()=>{
+  if(!currentItem) return;
+  // adiciona ao carrinho
+  const found = cart.find(x=>x.id===currentItem.id);
+  if(found){ found.qtd += currentQty; }
+  else { cart.push({ id: currentItem.id, nome: currentItem.nome, preco: currentItem.preco, qtd: currentQty }); }
+  saveCart(); updateBadge();
+  closeQtyModal();
+  popCartIcon(); // animação de feedback
+};
+
+// Fechar com ESC
+document.addEventListener('keydown', (e)=>{
+  if(e.key === "Escape" && overlay.style.display === "flex") closeQtyModal();
+});
+// Fechar clicando fora do cartão
+overlay.addEventListener('click', (e)=>{
+  if(e.target === overlay) closeQtyModal();
+});
+
+/* ------- POP DO CARRINHO ------- */
+function popCartIcon(){
+  const target = document.getElementById('cartEmoji'); // anima o emoji do carrinho
+  target.classList.remove('pop-anim'); // reset
+  // força reflow para reiniciar animação se repetida
+  void target.offsetWidth;
+  target.classList.add('pop-anim');
+}
+
+/* ------- INIT ------- */
+document.getElementById("mesaLabel").textContent = "Mesa " + MESA;
+document.getElementById("cartLink").href = "carrinho.html?mesa=" + encodeURIComponent(MESA);
+renderList("list-cafes", MENU.cafes);
+renderList("list-frias", MENU.frias);
+renderList("list-lanches", MENU.lanches);
+updateBadge();
+</script>
+</body>
+</html>
