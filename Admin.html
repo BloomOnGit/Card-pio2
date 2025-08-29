@@ -63,7 +63,7 @@ document.getElementById("btnLogin").onclick = ()=>{
 // ====== Ler pedidos da planilha ======
 async function fetchOrders(){
   try{
-    // cache-buster pra não ficar preso em cache do navegador/proxy
+    // cache-buster pra evitar cache
     const res = await fetch(GAS_URL + "?t=" + Date.now());
     const j = await res.json();
     if(!j.ok) throw new Error("Formato inválido");
@@ -74,10 +74,10 @@ async function fetchOrders(){
   }
 }
 
-// ====== Exibir e gravar no TXT ======
+// ====== Exibir (novos no topo) e gravar no TXT só pedidos novos ======
 const listEl = document.getElementById("list");
 let fileHandle = null;
-let lastDumpCount = 0;
+let seenIds = new Set();   // evita duplicar no arquivo
 
 document.getElementById("btnRefresh").onclick = refresh;
 
@@ -89,31 +89,34 @@ document.getElementById("btnConnectFile").onclick = async ()=>{
       types: [{ description: "Texto", accept: {"text/plain": [".txt"]} }]
     });
     document.getElementById("fileStatus").textContent = "Arquivo conectado ✅";
-    lastDumpCount = 0; // recomeça contagem
+    seenIds = new Set(); // ao conectar, grava todos os atuais uma vez
     await refresh();
   }catch(e){
     alert("Não foi possível conectar arquivo: " + e.message);
   }
 };
 
+function tsValue(x){
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
 async function refresh(){
   const orders = await fetchOrders();
-  renderList(orders);
 
+  // 1) Ordena para exibição: novos no topo (desc)
+  const sortedDesc = orders.slice().sort((a,b)=> tsValue(b.timestamp) - tsValue(a.timestamp));
+  renderList(sortedDesc);
+
+  // 2) Se conectado a arquivo, grava apenas os pedidos ainda não vistos (em ordem cronológica ascendente)
   if(fileHandle){
-    const lines = orders.map(o => {
-      const ts = formatDate(o.timestamp);
-      const itens = Array.isArray(o.items)
-        ? o.items.map(i => ` - ${i.nome} x${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`).join("\n")
-        : o.items;
-      return `[${ts}] #${o.orderId} | Cmd ${o.cmd} | ${o.name}\n${itens}\nTotal: R$ ${(o.total||0).toFixed(2).replace('.',',')}\n${o.delivery}\n\n`;
-    });
-
-    if(orders.length > lastDumpCount){
-      const delta = lines.slice(lastDumpCount).join("");
+    const newOnes = orders.filter(o => o.orderId && !seenIds.has(o.orderId))
+                          .sort((a,b)=> tsValue(a.timestamp) - tsValue(b.timestamp));
+    if(newOnes.length){
+      const delta = newOnes.map(formatLine).join("");
       await appendToFile(delta);
-      lastDumpCount = orders.length;
-      document.getElementById("fileStatus").textContent = "Gravado no arquivo ✅";
+      newOnes.forEach(o => seenIds.add(o.orderId));
+      document.getElementById("fileStatus").textContent = `Gravado no arquivo ✅ (+${newOnes.length})`;
     }
   }
 }
@@ -130,12 +133,20 @@ function renderList(orders){
       : o.items;
     return `
       <div class="row">
-        <div><strong>#${o.orderId}</strong> <span class="muted">(${ts})</span></div>
+        <div><strong>#${o.orderId || '—'}</strong> <span class="muted">(${ts})</span></div>
         <div>Comanda <strong>${o.cmd}</strong> — <strong>${o.name||'—'}</strong></div>
-        <div style="margin-top:6px">${itens}</div>
+        <div style="margin-top:6px">${itens || ''}</div>
         <div style="margin-top:6px"><strong>Total:</strong> R$ ${(o.total||0).toFixed(2).replace('.',',')} — <span class="muted">${o.delivery||''}</span></div>
       </div>`;
   }).join("");
+}
+
+function formatLine(o){
+  const ts = formatDate(o.timestamp);
+  const itens = Array.isArray(o.items)
+    ? o.items.map(i => ` - ${i.nome} x${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`).join("\n")
+    : (o.items || "");
+  return `[${ts}] #${o.orderId || '—'} | Cmd ${o.cmd} | ${o.name || '—'}\n${itens}\nTotal: R$ ${(o.total||0).toFixed(2).replace('.',',')}\n${o.delivery||''}\n\n`;
 }
 
 function formatDate(ts){
@@ -161,8 +172,6 @@ autoRefresh?.addEventListener('change', ()=>{
     clearInterval(autoTimer);
   }
 });
-
-// limpa o timer ao fechar a aba
 window.addEventListener('beforeunload', ()=> clearInterval(autoTimer));
 </script>
 </body>
