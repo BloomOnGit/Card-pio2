@@ -71,10 +71,13 @@
   </div>
 
 <script>
+/* ------- CONFIG: sua URL do Apps Script (termina com /exec) ------- */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGCUpSPkP57IL_lBNcxIgAz1hyevQJqHTMViOPG1Tj4jT4QXw/exec";
+
 /* ------- PARAMS & STORAGE (ISOLADO POR COMANDA) ------- */
 const params = new URLSearchParams(location.search);
 const CMD = params.get("cmd") || "default";
-const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;      // << chave por comanda
+const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
 const storeNameKey = (cmd)=> `name_for_cmd_${cmd}`;
 
 let cart = loadCart();
@@ -161,7 +164,7 @@ document.getElementById("recvCancel").onclick = ()=>{
   overlay.style.display = "none"; overlay.setAttribute('aria-hidden','true');
 };
 
-/* ------- GERA CÓDIGO + COPIA + LIMPA CARRINHO ------- */
+/* ------- GERA CÓDIGO + ENVIA PARA PLANILHA + COPIA + LIMPA ------- */
 function genOrderId(cmd){
   const s = Date.now().toString(36).slice(-6).toUpperCase();
   const c = (cmd || "X").toString().padStart(2,"0");
@@ -191,17 +194,33 @@ ${linhas}
 Total: R$ ${money(totalCart())}
 ${receber}`;
 
+  // 1) Envia para Apps Script (grava na planilha)
+  const payload = {
+    orderId,
+    cmd: CMD,
+    name: nomeCliente,
+    items: cart.map(i => ({ id:i.id, nome:i.nome, qtd:i.qtd, preco:i.preco })),
+    total: totalCart(),
+    delivery: receber
+  };
+  try {
+    // sem header Content-Type para evitar preflight/CORS
+    await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+  } catch (e) {
+    console.warn("Falha ao enviar para planilha:", e);
+  }
+
+  // 2) Copia o texto (opcional)
   try {
     await navigator.clipboard.writeText(msg);
     alert(`Pedido #${orderId} copiado!`);
   } catch {
-    // sem permissão de clipboard: mostra o texto para copiar
     document.getElementById("copyBox").classList.remove('hide');
     document.getElementById("preview").value = msg;
     alert(`Pedido #${orderId} gerado! Copie a mensagem exibida.`);
   }
 
-  // ✅ limpar carrinho desta comanda após gerar o pedido
+  // 3) Limpa carrinho desta comanda
   clearCart();
 
   overlay.style.display = "none"; overlay.setAttribute('aria-hidden','true');
