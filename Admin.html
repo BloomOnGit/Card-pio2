@@ -14,6 +14,7 @@
   .muted{color:#9aa0a6}
   .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .hidden{display:none}
+  .sec{background:#1b1f2a;border-color:#25272c}
 </style>
 </head>
 <body>
@@ -35,7 +36,9 @@
       <button id="btnRefresh">Atualizar agora</button>
       <button id="btnConnectFile">Conectar arquivo do dia</button>
       <label class="flex"><input type="checkbox" id="autoRefresh"> Atualizar a cada 5s</label>
+      <button id="btnClearScreen" class="sec">Limpar tela</button>
       <span id="fileStatus" class="muted">Sem arquivo</span>
+      <span id="uiStatus" class="muted"></span>
     </div>
     <p class="muted">Pedidos lidos da planilha e gravados em um <strong>.txt</strong> local quando conectado.</p>
     <div id="list" class="card"></div>
@@ -63,8 +66,7 @@ document.getElementById("btnLogin").onclick = ()=>{
 // ====== Ler pedidos da planilha ======
 async function fetchOrders(){
   try{
-    // cache-buster pra evitar cache
-    const res = await fetch(GAS_URL + "?t=" + Date.now());
+    const res = await fetch(GAS_URL + "?t=" + Date.now()); // cache-buster
     const j = await res.json();
     if(!j.ok) throw new Error("Formato inválido");
     return j.rows || [];
@@ -76,8 +78,11 @@ async function fetchOrders(){
 
 // ====== Exibir (novos no topo) e gravar no TXT só pedidos novos ======
 const listEl = document.getElementById("list");
+const fileStatus = document.getElementById("fileStatus");
+const uiStatus = document.getElementById("uiStatus");
 let fileHandle = null;
-let seenIds = new Set();   // evita duplicar no arquivo
+let seenIds = new Set();     // evita duplicar no arquivo
+let hideBeforeTs = 0;        // tudo com timestamp <= isso fica oculto (limpar tela)
 
 document.getElementById("btnRefresh").onclick = refresh;
 
@@ -88,12 +93,20 @@ document.getElementById("btnConnectFile").onclick = async ()=>{
       suggestedName: `Pedidos-${today}.txt`,
       types: [{ description: "Texto", accept: {"text/plain": [".txt"]} }]
     });
-    document.getElementById("fileStatus").textContent = "Arquivo conectado ✅";
-    seenIds = new Set(); // ao conectar, grava todos os atuais uma vez
+    fileStatus.textContent = "Arquivo conectado ✅";
+    seenIds = new Set(); // grava todos os atuais uma vez
     await refresh();
   }catch(e){
     alert("Não foi possível conectar arquivo: " + e.message);
   }
+};
+
+// Botão: Limpar tela (não apaga histórico nem TXT)
+document.getElementById("btnClearScreen").onclick = ()=>{
+  if(!confirm("Tem certeza que deseja limpar a tela? (isso NÃO apaga a planilha nem o arquivo .txt)")) return;
+  hideBeforeTs = Date.now();         // a partir de agora só mostra novos
+  uiStatus.textContent = "Tela limpa — mostrando apenas pedidos novos.";
+  renderList([]);                    // esvazia a tela imediatamente
 };
 
 function tsValue(x){
@@ -104,19 +117,26 @@ function tsValue(x){
 async function refresh(){
   const orders = await fetchOrders();
 
-  // 1) Ordena para exibição: novos no topo (desc)
-  const sortedDesc = orders.slice().sort((a,b)=> tsValue(b.timestamp) - tsValue(a.timestamp));
+  // 1) Filtra pedidos antigos se a tela foi limpa
+  const visible = hideBeforeTs
+    ? orders.filter(o => tsValue(o.timestamp) > hideBeforeTs)
+    : orders;
+
+  // 2) Exibição: novos no topo (desc)
+  const sortedDesc = visible.slice().sort((a,b)=> tsValue(b.timestamp) - tsValue(a.timestamp));
   renderList(sortedDesc);
 
-  // 2) Se conectado a arquivo, grava apenas os pedidos ainda não vistos (em ordem cronológica ascendente)
+  // 3) Se conectado ao arquivo, grava apenas pedidos ainda não vistos (ordem asc)
   if(fileHandle){
-    const newOnes = orders.filter(o => o.orderId && !seenIds.has(o.orderId))
-                          .sort((a,b)=> tsValue(a.timestamp) - tsValue(b.timestamp));
+    const newOnes = orders
+      .filter(o => o.orderId && !seenIds.has(o.orderId))
+      .sort((a,b)=> tsValue(a.timestamp) - tsValue(b.timestamp));
+
     if(newOnes.length){
       const delta = newOnes.map(formatLine).join("");
       await appendToFile(delta);
       newOnes.forEach(o => seenIds.add(o.orderId));
-      document.getElementById("fileStatus").textContent = `Gravado no arquivo ✅ (+${newOnes.length})`;
+      fileStatus.textContent = `Gravado no arquivo ✅ (+${newOnes.length})`;
     }
   }
 }
@@ -130,12 +150,12 @@ function renderList(orders){
     const ts = formatDate(o.timestamp);
     const itens = Array.isArray(o.items)
       ? o.items.map(i => `<div>• <strong>${i.nome}</strong> x${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}</div>`).join("")
-      : o.items;
+      : (o.items || "");
     return `
       <div class="row">
         <div><strong>#${o.orderId || '—'}</strong> <span class="muted">(${ts})</span></div>
         <div>Comanda <strong>${o.cmd}</strong> — <strong>${o.name||'—'}</strong></div>
-        <div style="margin-top:6px">${itens || ''}</div>
+        <div style="margin-top:6px">${itens}</div>
         <div style="margin-top:6px"><strong>Total:</strong> R$ ${(o.total||0).toFixed(2).replace('.',',')} — <span class="muted">${o.delivery||''}</span></div>
       </div>`;
   }).join("");
