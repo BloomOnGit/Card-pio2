@@ -62,7 +62,7 @@
     </section>
   </main>
 
-  <!-- Modal: capturar NOME da comanda (primeiro acesso) -->
+  <!-- Modal: capturar NOME -->
   <div class="overlay" id="nameOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
       <h3 id="nameTitle" style="margin:0 0 6px">Seu nome</h3>
@@ -95,7 +95,7 @@ const MENU = {
 /* ------- PARAMS & STORAGE (ISOLADO POR COMANDA) ------- */
 const params = new URLSearchParams(location.search);
 const CMD = params.get("cmd") || "default";
-const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;     // << chave por comanda
+const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
 const storeNameKey = (cmd)=> `name_for_cmd_${cmd}`;
 
 let cart = loadCart();
@@ -144,7 +144,7 @@ function renderList(containerId, items){
   });
 }
 
-/* ------- PRIMEIRO NOME ------- */
+/* ------- NOME (primeira vez) ------- */
 function requireNameIfNeeded(){
   document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
   document.getElementById("clienteInfo").textContent = "Nome " + (nomeCliente || "—");
