@@ -34,6 +34,7 @@
     <div class="flex">
       <button id="btnRefresh">Atualizar agora</button>
       <button id="btnConnectFile">Conectar arquivo do dia</button>
+      <label class="flex"><input type="checkbox" id="autoRefresh"> Atualizar a cada 5s</label>
       <span id="fileStatus" class="muted">Sem arquivo</span>
     </div>
     <p class="muted">Pedidos lidos da planilha e gravados em um <strong>.txt</strong> local quando conectado.</p>
@@ -62,7 +63,8 @@ document.getElementById("btnLogin").onclick = ()=>{
 // ====== Ler pedidos da planilha ======
 async function fetchOrders(){
   try{
-    const res = await fetch(GAS_URL);
+    // cache-buster pra não ficar preso em cache do navegador/proxy
+    const res = await fetch(GAS_URL + "?t=" + Date.now());
     const j = await res.json();
     if(!j.ok) throw new Error("Formato inválido");
     return j.rows || [];
@@ -146,6 +148,22 @@ async function appendToFile(text){
   await writable.write(text);
   await writable.close();
 }
+
+// ====== Auto-atualização (5s) ======
+const autoRefresh = document.getElementById('autoRefresh');
+let autoTimer = null;
+
+autoRefresh?.addEventListener('change', ()=>{
+  if (autoRefresh.checked) {
+    refresh(); // atualiza já
+    autoTimer = setInterval(refresh, 5000); // a cada 5s
+  } else {
+    clearInterval(autoTimer);
+  }
+});
+
+// limpa o timer ao fechar a aba
+window.addEventListener('beforeunload', ()=> clearInterval(autoTimer));
 </script>
 </body>
 </html>
