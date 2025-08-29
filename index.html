@@ -20,13 +20,10 @@
   .item-price{color:var(--muted);text-align:right}
   .add{justify-self:end;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
   .muted{color:var(--muted);font-size:.9rem}
-  /* modal nome */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
   .modal{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
   .btn{display:inline-block;padding:12px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-weight:700;text-align:center;cursor:pointer}
-  .btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
   input[type="text"]{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px}
-  /* pop do carrinho (já tinha) */
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
   .pop-anim{animation:pop 280ms ease}
 </style>
@@ -78,7 +75,7 @@
   </div>
 
 <script>
-/* ------- CONFIG ------- */
+/* ------- CARDÁPIO ------- */
 const MENU = {
   cafes: [
     { id:"espresso",  nome:"Espresso",     preco:6.00 },
@@ -95,18 +92,17 @@ const MENU = {
   ]
 };
 
-/* ------- PARAMS & STORAGE ------- */
+/* ------- PARAMS & STORAGE (ISOLADO POR COMANDA) ------- */
 const params = new URLSearchParams(location.search);
-const CMD = params.get("cmd") || "default";       // ID da comanda
-const STORE_CART = "cafe_cart_v1";
-const STORE_NAME = (cmd)=> `name_for_cmd_${cmd}`;
+const CMD = params.get("cmd") || "default";
+const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;     // << chave por comanda
+const storeNameKey = (cmd)=> `name_for_cmd_${cmd}`;
 
 let cart = loadCart();
-let nomeCliente = localStorage.getItem(STORE_NAME(CMD)) || "";
+let nomeCliente = localStorage.getItem(storeNameKey(CMD)) || "";
 
-/* ------- FUNÇÕES ------- */
-function loadCart(){ try { return JSON.parse(localStorage.getItem(STORE_CART)) || []; } catch { return []; } }
-function saveCart(){ localStorage.setItem(STORE_CART, JSON.stringify(cart)); }
+function loadCart(){ try { return JSON.parse(localStorage.getItem(storeCartKey(CMD))) || []; } catch { return []; } }
+function saveCart(){ localStorage.setItem(storeCartKey(CMD), JSON.stringify(cart)); }
 function money(n){ return n.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function updateBadge(){
   const c = cart.reduce((s,i)=> s + i.qtd, 0);
@@ -117,7 +113,7 @@ function popCartIcon(){
   target.classList.remove('pop-anim'); void target.offsetWidth; target.classList.add('pop-anim');
 }
 
-/* ------- RENDER LISTAS ------- */
+/* ------- LISTAGEM ------- */
 function renderList(containerId, items){
   const el = document.getElementById(containerId);
   el.innerHTML = "";
@@ -127,9 +123,7 @@ function renderList(containerId, items){
     name.textContent = item.nome;
 
     const right = document.createElement('div');
-    right.style.display = "flex";
-    right.style.alignItems = "center";
-    right.style.gap = "8px";
+    right.style.display = "flex"; right.style.alignItems = "center"; right.style.gap = "8px";
 
     const price = document.createElement('div');
     price.className = "item-price";
@@ -139,9 +133,9 @@ function renderList(containerId, items){
     btn.className = "add";
     btn.textContent = "+ Adicionar";
     btn.onclick = ()=> {
-      // pop-up de quantidade simplificado: 1 unidade direta (se quiser manter seu modal anterior, pode reincorporar)
       const found = cart.find(x=>x.id===item.id);
-      if(found){ found.qtd += 1; } else { cart.push({ id:item.id, nome:item.nome, preco:item.preco, qtd:1 }); }
+      if(found){ found.qtd += 1; }
+      else { cart.push({ id:item.id, nome:item.nome, preco:item.preco, qtd:1 }); }
       saveCart(); updateBadge(); popCartIcon();
     };
 
@@ -150,7 +144,7 @@ function renderList(containerId, items){
   });
 }
 
-/* ------- CAPTURAR NOME (primeira vez) ------- */
+/* ------- PRIMEIRO NOME ------- */
 function requireNameIfNeeded(){
   document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
   document.getElementById("clienteInfo").textContent = "Nome " + (nomeCliente || "—");
@@ -158,17 +152,14 @@ function requireNameIfNeeded(){
   if(!nomeCliente){
     const overlay = document.getElementById('nameOverlay');
     const input = document.getElementById('nameInput');
-    overlay.style.display = "flex";
-    overlay.setAttribute('aria-hidden','false');
-    input.focus();
+    overlay.style.display = "flex"; overlay.setAttribute('aria-hidden','false'); input.focus();
 
     document.getElementById('saveName').onclick = ()=>{
       const v = (input.value || "").trim();
       if(!v){ input.focus(); return; }
       nomeCliente = v;
-      localStorage.setItem(STORE_NAME(CMD), nomeCliente);
-      overlay.style.display = "none";
-      overlay.setAttribute('aria-hidden','true');
+      localStorage.setItem(storeNameKey(CMD), nomeCliente);
+      overlay.style.display = "none"; overlay.setAttribute('aria-hidden','true');
       document.getElementById("clienteInfo").textContent = "Nome " + nomeCliente;
     };
   }
