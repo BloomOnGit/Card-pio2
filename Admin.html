@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Admin Pedidos (simple)</title>
+<title>Admin Pedidos (filtrado por mesa)</title>
 <style>
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#0b0c10;color:#e6e7ee}
   header,main{max-width:1000px;margin:auto;padding:16px}
@@ -20,6 +20,7 @@
 <body>
 <header>
   <h2>📟 Admin — Pedidos</h2>
+  <p class="muted" id="mesaInfo"></p>
 </header>
 <main>
   <div id="loginBox" class="card">
@@ -40,7 +41,7 @@
       <span id="fileStatus" class="muted">Sem arquivo</span>
       <span id="uiStatus" class="muted"></span>
     </div>
-    <p class="muted">Pedidos lidos da planilha e gravados em um <strong>.txt</strong> local quando conectado.</p>
+    <p class="muted">Exibindo apenas pedidos da <strong>mesa selecionada</strong>.</p>
     <div id="list" class="card"></div>
   </div>
 </main>
@@ -50,14 +51,21 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGC
 const USER_OK = "montanhesa";
 const PASS_OK = "12montanhesa21";
 
+/* ======== Pegando a MESA via parâmetro ======== */
+const params = new URLSearchParams(location.search);
+const MESA = params.get("cmd") || null;
+document.getElementById("mesaInfo").textContent = MESA ? `🪑 Mesa ${MESA}` : "Todas as mesas (modo geral)";
+
 const loginBox = document.getElementById("loginBox");
 const panel    = document.getElementById("panel");
+
 document.getElementById("btnLogin").onclick = ()=>{
   const u = document.getElementById("user").value.trim();
   const p = document.getElementById("pass").value;
   if (u === USER_OK && p === PASS_OK) {
     loginBox.classList.add("hidden");
     panel.classList.remove("hidden");
+    refresh();
   } else {
     alert("Login inválido.");
   }
@@ -66,23 +74,28 @@ document.getElementById("btnLogin").onclick = ()=>{
 // ====== Ler pedidos da planilha ======
 async function fetchOrders(){
   try{
-    const res = await fetch(GAS_URL + "?t=" + Date.now()); // cache-buster
+    const res = await fetch(GAS_URL + "?t=" + Date.now());
     const j = await res.json();
     if(!j.ok) throw new Error("Formato inválido");
-    return j.rows || [];
+    let rows = j.rows || [];
+
+    // ✅ FILTRO: mostrar apenas pedidos da mesa selecionada (cmd=X)
+    if (MESA) rows = rows.filter(o => String(o.cmd) === String(MESA));
+
+    return rows;
   }catch(e){
     alert("Falha ao buscar pedidos: " + e.message);
     return [];
   }
 }
 
-// ====== Exibir (novos no topo) e gravar no TXT só pedidos novos ======
+// ====== Exibir pedidos ======
 const listEl = document.getElementById("list");
 const fileStatus = document.getElementById("fileStatus");
 const uiStatus = document.getElementById("uiStatus");
 let fileHandle = null;
-let seenIds = new Set();     // evita duplicar no arquivo
-let hideBeforeTs = 0;        // tudo com timestamp <= isso fica oculto (limpar tela)
+let seenIds = new Set();
+let hideBeforeTs = 0;
 
 document.getElementById("btnRefresh").onclick = refresh;
 
@@ -90,23 +103,22 @@ document.getElementById("btnConnectFile").onclick = async ()=>{
   try{
     const today = new Date().toISOString().slice(0,10);
     fileHandle = await window.showSaveFilePicker({
-      suggestedName: `Pedidos-${today}.txt`,
+      suggestedName: `Pedidos-Mesa${MESA || 'Todas'}-${today}.txt`,
       types: [{ description: "Texto", accept: {"text/plain": [".txt"]} }]
     });
     fileStatus.textContent = "Arquivo conectado ✅";
-    seenIds = new Set(); // grava todos os atuais uma vez
+    seenIds = new Set();
     await refresh();
   }catch(e){
     alert("Não foi possível conectar arquivo: " + e.message);
   }
 };
 
-// Botão: Limpar tela (não apaga histórico nem TXT)
 document.getElementById("btnClearScreen").onclick = ()=>{
   if(!confirm("Tem certeza que deseja limpar a tela? (isso NÃO apaga a planilha nem o arquivo .txt)")) return;
-  hideBeforeTs = Date.now();         // a partir de agora só mostra novos
+  hideBeforeTs = Date.now();
   uiStatus.textContent = "Tela limpa — mostrando apenas pedidos novos.";
-  renderList([]);                    // esvazia a tela imediatamente
+  renderList([]);
 };
 
 function tsValue(x){
@@ -116,17 +128,13 @@ function tsValue(x){
 
 async function refresh(){
   const orders = await fetchOrders();
-
-  // 1) Filtra pedidos antigos se a tela foi limpa
   const visible = hideBeforeTs
     ? orders.filter(o => tsValue(o.timestamp) > hideBeforeTs)
     : orders;
 
-  // 2) Exibição: novos no topo (desc)
   const sortedDesc = visible.slice().sort((a,b)=> tsValue(b.timestamp) - tsValue(a.timestamp));
   renderList(sortedDesc);
 
-  // 3) Se conectado ao arquivo, grava apenas pedidos ainda não vistos (ordem asc)
   if(fileHandle){
     const newOnes = orders
       .filter(o => o.orderId && !seenIds.has(o.orderId))
@@ -154,9 +162,9 @@ function renderList(orders){
     return `
       <div class="row">
         <div><strong>#${o.orderId || '—'}</strong> <span class="muted">(${ts})</span></div>
-        <div>Comanda <strong>${o.cmd}</strong> — <strong>${o.name||'—'}</strong></div>
+        <div>Comanda <strong>${o.cmd}</strong></div>
         <div style="margin-top:6px">${itens}</div>
-        <div style="margin-top:6px"><strong>Total:</strong> R$ ${(o.total||0).toFixed(2).replace('.',',')} — <span class="muted">${o.delivery||''}</span></div>
+        <div style="margin-top:6px"><strong>Total:</strong> R$ ${(o.total||0).toFixed(2).replace('.',',')}</div>
       </div>`;
   }).join("");
 }
@@ -166,7 +174,7 @@ function formatLine(o){
   const itens = Array.isArray(o.items)
     ? o.items.map(i => ` - ${i.nome} x${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`).join("\n")
     : (o.items || "");
-  return `[${ts}] #${o.orderId || '—'} | Cmd ${o.cmd} | ${o.name || '—'}\n${itens}\nTotal: R$ ${(o.total||0).toFixed(2).replace('.',',')}\n${o.delivery||''}\n\n`;
+  return `[${ts}] #${o.orderId || '—'} | Cmd ${o.cmd}\n${itens}\nTotal: R$ ${(o.total||0).toFixed(2).replace('.',',')}\n\n`;
 }
 
 function formatDate(ts){
@@ -180,14 +188,13 @@ async function appendToFile(text){
   await writable.close();
 }
 
-// ====== Auto-atualização (5s) ======
+// ====== Auto-refresh ======
 const autoRefresh = document.getElementById('autoRefresh');
 let autoTimer = null;
-
 autoRefresh?.addEventListener('change', ()=>{
   if (autoRefresh.checked) {
-    refresh(); // atualiza já
-    autoTimer = setInterval(refresh, 5000); // a cada 5s
+    refresh();
+    autoTimer = setInterval(refresh, 5000);
   } else {
     clearInterval(autoTimer);
   }
