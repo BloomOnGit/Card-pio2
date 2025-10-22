@@ -20,10 +20,6 @@
   .item-price{color:var(--muted);text-align:right}
   .add{justify-self:end;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
   .muted{color:var(--muted);font-size:.9rem}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-  .modal{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
-  .btn{display:inline-block;padding:12px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-weight:700;text-align:center;cursor:pointer}
-  input[type="text"]{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px}
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
   .pop-anim{animation:pop 280ms ease}
 </style>
@@ -32,10 +28,7 @@
   <header>
     <div class="brand">
       <div><strong>Seu Café</strong></div>
-      <div class="info">
-        <div id="comandaInfo">Comanda —</div>
-        <div id="clienteInfo">Nome —</div>
-      </div>
+      <div class="info" id="comandaInfo"></div>
     </div>
     <a id="cartLink" class="cart-btn" href="#">
       <span id="cartEmoji">🛒</span>
@@ -62,18 +55,6 @@
     </section>
   </main>
 
-  <!-- Modal: capturar NOME -->
-  <div class="overlay" id="nameOverlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
-      <h3 id="nameTitle" style="margin:0 0 6px">Seu nome</h3>
-      <p class="muted" style="margin:0 0 10px">Digite seu nome para vincular a esta comanda.</p>
-      <input id="nameInput" type="text" placeholder="Ex.: Ana" autocomplete="name" />
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button class="btn" id="saveName">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
 <script>
 /* ------- CARDÁPIO ------- */
 const MENU = {
@@ -92,14 +73,12 @@ const MENU = {
   ]
 };
 
-/* ------- PARAMS & STORAGE (ISOLADO POR COMANDA) ------- */
+/* ------- PARAMS & STORAGE ------- */
 const params = new URLSearchParams(location.search);
 const CMD = params.get("cmd") || "default";
 const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
-const storeNameKey = (cmd)=> `name_for_cmd_${cmd}`;
 
 let cart = loadCart();
-let nomeCliente = localStorage.getItem(storeNameKey(CMD)) || "";
 
 function loadCart(){ try { return JSON.parse(localStorage.getItem(storeCartKey(CMD))) || []; } catch { return []; } }
 function saveCart(){ localStorage.setItem(storeCartKey(CMD), JSON.stringify(cart)); }
@@ -144,30 +123,9 @@ function renderList(containerId, items){
   });
 }
 
-/* ------- NOME (primeira vez) ------- */
-function requireNameIfNeeded(){
-  document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
-  document.getElementById("clienteInfo").textContent = "Nome " + (nomeCliente || "—");
-
-  if(!nomeCliente){
-    const overlay = document.getElementById('nameOverlay');
-    const input = document.getElementById('nameInput');
-    overlay.style.display = "flex"; overlay.setAttribute('aria-hidden','false'); input.focus();
-
-    document.getElementById('saveName').onclick = ()=>{
-      const v = (input.value || "").trim();
-      if(!v){ input.focus(); return; }
-      nomeCliente = v;
-      localStorage.setItem(storeNameKey(CMD), nomeCliente);
-      overlay.style.display = "none"; overlay.setAttribute('aria-hidden','true');
-      document.getElementById("clienteInfo").textContent = "Nome " + nomeCliente;
-    };
-  }
-}
-
 /* ------- INIT ------- */
+document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
 document.getElementById("cartLink").href = `carrinho.html?cmd=${encodeURIComponent(CMD)}`;
-requireNameIfNeeded();
 renderList("list-cafes", MENU.cafes);
 renderList("list-frias", MENU.frias);
 renderList("list-lanches", MENU.lanches);
