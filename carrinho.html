@@ -21,17 +21,12 @@
   .btn.sec{background:#fff;color:#111;border:1px solid #e6e6e6}
   .btn[disabled]{opacity:.6;cursor:not-allowed}
   .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;margin:14px 0}
-  .hide{display:none}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-  .modal{width:100%;max-width:420px;background:#fff;border:1px solid #e6e6e6;border-radius:16px;padding:16px}
-  input[type="text"]{width:100%;padding:10px;border:1px solid #e6e6e6;border-radius:8px}
-  label{display:flex;gap:8px;align-items:center;cursor:pointer}
 </style>
 </head>
 <body>
   <header>
     <a id="backLink" href="#">← Voltar</a>
-    <div class="meta" id="metaInfo">Comanda — | Nome —</div>
+    <div class="meta" id="metaInfo">Comanda —</div>
   </header>
 
   <main>
@@ -49,34 +44,16 @@
     </div>
   </main>
 
-  <!-- Modal: Como deseja receber -->
-  <div class="overlay" id="recvOverlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="recvTitle">
-      <h3 id="recvTitle" style="margin:0 0 8px">Como deseja receber?</h3>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
-        <label><input type="radio" name="recv" value="mesa" checked> Entrega na mesa</label>
-        <div id="mesaBox"><input id="mesaInput" type="text" inputmode="numeric" placeholder="Número da mesa" /></div>
-        <label><input type="radio" name="recv" value="balcao"> Retirar no balcão pelo nome</label>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn sec" id="recvCancel" type="button">Cancelar</button>
-        <button class="btn" id="recvConfirm" type="button">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
 <script>
 /* ------- CONFIG: sua URL do Apps Script (termina com /exec) ------- */
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGCUpSPkP57IL_lBNcxIgAz1hyevQJqHTMViOPG1Tj4jT4QXw/exec";
 
-/* ------- PARAMS & STORAGE (ISOLADO POR COMANDA) ------- */
+/* ------- PARAMS & STORAGE ------- */
 const params = new URLSearchParams(location.search);
-const CMD = params.get("cmd") || "default";
+const CMD = params.get("cmd") || "0";
 const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
-const storeNameKey = (cmd)=> `name_for_cmd_${cmd}`;
 
 let cart = loadCart();
-let nomeCliente = localStorage.getItem(storeNameKey(CMD)) || "—";
 
 function loadCart(){ try { return JSON.parse(localStorage.getItem(storeCartKey(CMD))) || []; } catch { return []; } }
 function saveCart(){ localStorage.setItem(storeCartKey(CMD), JSON.stringify(cart)); }
@@ -108,7 +85,7 @@ function countCart(){ return cart.reduce((s,i)=> s + i.qtd, 0); }
 /* ------- RENDER ------- */
 function render(){
   document.getElementById("backLink").href = `index.html?cmd=${encodeURIComponent(CMD)}`;
-  document.getElementById("metaInfo").textContent = `Comanda ${CMD} | Nome ${nomeCliente}`;
+  document.getElementById("metaInfo").textContent = `Comanda ${CMD}`;
 
   const list = document.getElementById("cartList");
   list.innerHTML = "";
@@ -145,95 +122,37 @@ function render(){
   document.getElementById("count").textContent = countCart();
 }
 
-/* ------- MODAL DE RECEBIMENTO ------- */
-const overlay = document.getElementById('recvOverlay');
-const mesaInput = document.getElementById('mesaInput');
-const recvRadios = document.getElementsByName('recv');
-const btnConfirm = document.getElementById('recvConfirm');
-const btnCancel  = document.getElementById('recvCancel');
-
-document.getElementById("sendOrder").onclick = ()=>{
+/* ------- ENVIAR PEDIDO DIRETO ------- */
+document.getElementById("sendOrder").onclick = async ()=>{
   if(cart.length===0){ alert("Seu carrinho está vazio."); return; }
-  overlay.style.display = "flex"; overlay.setAttribute('aria-hidden','false');
-  mesaInput.focus();
-};
-btnCancel.onclick = ()=>{
-  overlay.style.display = "none"; overlay.setAttribute('aria-hidden','true');
-};
 
-/* ------- EVITAR CLIQUE DUPLO + ENVIAR ------- */
-let isSending = false;
-
-function genOrderId(cmd){
-  const s = Date.now().toString(36).slice(-6).toUpperCase();
-  const c = (cmd || "X").toString().padStart(2,"0");
-  return `${c}-${s}`;
-}
-
-btnConfirm.onclick = async ()=>{
-  if (isSending) return; // já está enviando, ignora
-  const recv = [...recvRadios].find(r=>r.checked)?.value || "mesa";
-
-  // validação antes de travar
-  let receber = "";
-  if(recv === "mesa"){
-    const mesa = mesaInput.value.trim();
-    if(!mesa){ mesaInput.focus(); return; }
-    receber = `Entrega na mesa: ${mesa}`;
-  } else {
-    receber = `Retirar no balcão pelo nome: ${nomeCliente}`;
-  }
-
-  // trava o botão até terminar
-  isSending = true;
-  btnConfirm.disabled = true;
-  btnCancel.disabled = true;
-  const prevLabel = btnConfirm.textContent;
-  btnConfirm.textContent = "Enviando...";
-
-  const orderId = genOrderId(CMD);
+  const orderId = `${CMD.padStart(2,'0')}-${Date.now().toString(36).slice(-6).toUpperCase()}`;
   const linhas = cart.map(i=>`• ${i.nome} x${i.qtd} — R$ ${money(i.preco*i.qtd)}`).join('\n');
   const msg =
 `🧾 Pedido #${orderId}
 Comanda: ${CMD}
-Nome: ${nomeCliente}
 
 ${linhas}
 
-Total: R$ ${money(totalCart())}
-${receber}`;
+Total: R$ ${money(totalCart())}`;
 
-  // 1) Envia para Apps Script (grava na planilha)
+  // Envia para Google Apps Script
   const payload = {
     orderId,
     cmd: CMD,
-    name: nomeCliente,
     items: cart.map(i => ({ id:i.id, nome:i.nome, qtd:i.qtd, preco:i.preco })),
     total: totalCart(),
-    delivery: receber
   };
+
   try {
     await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
   } catch (e) {
     console.warn("Falha ao enviar para planilha:", e);
-    // segue mesmo assim para evitar reenvio duplicado
   }
 
-  // 2) (Opcional) tenta copiar para facilitar; não mostra mensagem de copiado
-  try { await navigator.clipboard.writeText(msg); } catch {}
-
-  // 3) Limpa carrinho desta comanda
+  // Limpa e feedback
   clearCart();
-
-  // 4) Feedback único
   alert("Pedido enviado!");
-
-  // 5) Fecha modal e libera para próximo pedido
-  overlay.style.display = "none"; overlay.setAttribute('aria-hidden','true');
-  btnConfirm.textContent = prevLabel;
-  btnConfirm.disabled = false;
-  btnCancel.disabled = false;
-  isSending = false;
 };
 
 /* ------- INIT ------- */
