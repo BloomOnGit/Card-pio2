@@ -15,13 +15,29 @@
   .cart-count{min-width:20px;height:20px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}
   main{max-width:900px;margin:0 auto;padding:16px}
   h2{margin:24px 0 8px}
-  .grid{display:grid;grid-template-columns:1fr auto;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .grid{display:grid;grid-template-columns:1fr auto;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
   .item-name{font-weight:600}
   .item-price{color:var(--muted);text-align:right}
   .add{justify-self:end;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
   .muted{color:var(--muted);font-size:.9rem}
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
   .pop-anim{animation:pop 280ms ease}
+  /* Subitens (como Waffles) recuados e elegantes */
+  .subitem-group h3 {
+    margin: 12px 0 8px;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  .subitem-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
 </style>
 </head>
 <body>
@@ -38,6 +54,11 @@
 
   <main>
     <p class="muted">Escolha os itens e adicione ao carrinho. Depois, finalize na página do carrinho.</p>
+
+    <section>
+      <h2>Waffles</h2>
+      <div id="list-waffles" class="subitem-group"></div>
+    </section>
 
     <section>
       <h2>Cafés</h2>
@@ -58,6 +79,14 @@
 <script>
 /* ------- CARDÁPIO ------- */
 const MENU = {
+  waffles: {
+    titulo: "Waffle",
+    itens: [
+      { id:"waffle-mexerica", nome:"Geléia de mexerica", preco:14.00 },
+      { id:"waffle-figo", nome:"Geléia de figo com laranja e canela", preco:14.00 },
+      { id:"waffle-silvestres", nome:"Geléia de frutas silvestres com aceto balsâmico", preco:14.00 },
+    ]
+  },
   cafes: [
     { id:"espresso",  nome:"Espresso",     preco:6.00 },
     { id:"cappuccino",nome:"Cappuccino",   preco:9.00 },
@@ -72,6 +101,7 @@ const MENU = {
     { id:"torta",     nome:"Torta do Dia", preco:9.50 }
   ]
 };
+
 
 /* ------- PARAMS & STORAGE ------- */
 const params = new URLSearchParams(location.search);
@@ -93,16 +123,65 @@ function popCartIcon(){
 }
 
 /* ------- LISTAGEM ------- */
-function renderList(containerId, items){
+function renderList(containerId, items) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
-  items.forEach(item=>{
+
+  // Se for um grupo (objeto com título e subitens)
+  if (!Array.isArray(items)) {
+    const groupTitle = document.createElement('h3');
+    groupTitle.textContent = items.titulo;
+    el.append(groupTitle);
+
+    items.itens.forEach(item => {
+      const row = document.createElement('div');
+      row.className = "subitem-row";
+
+      const name = document.createElement('div');
+      name.className = "item-name";
+      name.textContent = `${items.titulo} — ${item.nome}`;
+
+      const right = document.createElement('div');
+      right.style.display = "flex";
+      right.style.alignItems = "center";
+      right.style.gap = "8px";
+
+      const price = document.createElement('div');
+      price.className = "item-price";
+      price.textContent = "R$ " + money(item.preco);
+
+      const btn = document.createElement('button');
+      btn.className = "add";
+      btn.textContent = "+ Adicionar";
+      btn.onclick = ()=> {
+        const fullName = `${items.titulo} — ${item.nome}`;
+        const found = cart.find(x=>x.id===item.id);
+        if(found){ found.qtd += 1; }
+        else { cart.push({ id:item.id, nome:fullName, preco:item.preco, qtd:1 }); }
+        saveCart(); updateBadge(); popCartIcon();
+      };
+
+      right.append(price, btn);
+      row.append(name, right);
+      el.append(row);
+    });
+
+    return;
+  }
+
+  // Caso normal (lista simples)
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = "grid";
+
     const name = document.createElement('div');
     name.className = "item-name";
     name.textContent = item.nome;
 
     const right = document.createElement('div');
-    right.style.display = "flex"; right.style.alignItems = "center"; right.style.gap = "8px";
+    right.style.display = "flex";
+    right.style.alignItems = "center";
+    right.style.gap = "8px";
 
     const price = document.createElement('div');
     price.className = "item-price";
@@ -119,13 +198,16 @@ function renderList(containerId, items){
     };
 
     right.append(price, btn);
-    el.append(name, right);
+    row.append(name, right);
+    el.append(row);
   });
 }
+
 
 /* ------- INIT ------- */
 document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
 document.getElementById("cartLink").href = `carrinho.html?cmd=${encodeURIComponent(CMD)}`;
+renderList("list-waffles", MENU.waffles);
 renderList("list-cafes", MENU.cafes);
 renderList("list-frias", MENU.frias);
 renderList("list-lanches", MENU.lanches);
