@@ -155,6 +155,7 @@
     border-radius: 8px;
     padding: 10px 14px;
     font-weight: bold;
+    width: 45%;
   }
   .popup .confirm {
     background: #111;
@@ -278,13 +279,13 @@ function showQuantityPopup(itemObj) {
 
   const actions = document.createElement('div');
   actions.className = 'actions';
-  const confirm = document.createElement('button');
-  confirm.className = 'confirm';
-  confirm.textContent = 'Confirmar';
   const cancel = document.createElement('button');
   cancel.className = 'cancel';
   cancel.textContent = 'Cancelar';
-  actions.append(confirm, cancel);
+  const confirm = document.createElement('button');
+  confirm.className = 'confirm';
+  confirm.textContent = 'Confirmar';
+  actions.append(cancel, confirm);
   popup.append(actions);
 
   overlay.append(popup);
