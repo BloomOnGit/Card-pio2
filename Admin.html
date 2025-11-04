@@ -3,203 +3,150 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Admin Pedidos (filtrado por mesa)</title>
+<title>Carrinho</title>
 <style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#0b0c10;color:#e6e7ee}
-  header,main{max-width:1000px;margin:auto;padding:16px}
-  .card{background:#111216;border:1px solid #25272c;border-radius:12px;padding:14px;margin:12px 0}
-  input,button{background:#161820;color:#e6e7ee;border:1px solid #25272c;border-radius:8px;padding:10px}
-  button{cursor:pointer}
-  .row{border-bottom:1px solid #25272c;padding:10px 0}
-  .muted{color:#9aa0a6}
-  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .hidden{display:none}
-  .sec{background:#1b1f2a;border-color:#25272c}
+  :root{--bg:#fafafa;--ink:#111;--muted:#666;--line:#e6e6e6;--acc:#111;}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fafafa;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e6e6e6;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+  a{text-decoration:none;color:inherit}
+  .meta{font-size:.9rem;color:#666}
+  main{max-width:900px;margin:0 auto;padding:16px}
+  .row{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center;padding:12px 0;border-bottom:1px solid #e6e6e6;background:#fff}
+  .muted{color:#666}
+  .chip{border:1px solid #e6e6e6;border-radius:999px;padding:4px 8px;background:#fff;cursor:pointer}
+  .qty{display:inline-flex;gap:8px;align-items:center}
+  .totals{display:flex;justify-content:space-between;align-items:center;padding:16px 0}
+  .btn{display:inline-block;padding:12px 16px;border-radius:10px;border:none;background:#111;color:#fff;font-weight:700;text-align:center;cursor:pointer}
+  .btn.sec{background:#fff;color:#111;border:1px solid #e6e6e6}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;margin:14px 0}
+
+  /* Tela de envio */
+  #sendingOverlay {
+    position:fixed;inset:0;background:rgba(0,0,0,0.6);
+    display:none;align-items:center;justify-content:center;
+    flex-direction:column;color:#fff;font-size:1.2rem;
+    z-index:999;
+  }
+  .dots::after {
+    content: '...';
+    animation: dots 1.2s steps(3, end) infinite;
+  }
+  @keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h2>📟 Admin — Pedidos</h2>
-  <p class="muted" id="mesaInfo"></p>
-</header>
-<main>
-  <div id="loginBox" class="card">
-    <div class="flex">
-      <input id="user" placeholder="usuário" />
-      <input id="pass" placeholder="senha" type="password" />
-      <button id="btnLogin">Entrar</button>
-    </div>
-    <p class="muted">Usuário: <code>montanhesa</code> • Senha: <code>12montanhesa21</code></p>
-  </div>
+  <header>
+    <a id="backLink" href="#">← Voltar</a>
+    <div class="meta" id="metaInfo">Comanda —</div>
+  </header>
 
-  <div id="panel" class="card hidden">
-    <div class="flex">
-      <button id="btnRefresh">Atualizar agora</button>
-      <button id="btnConnectFile">Conectar arquivo do dia</button>
-      <label class="flex"><input type="checkbox" id="autoRefresh"> Atualizar a cada 5s</label>
-      <button id="btnClearScreen" class="sec">Limpar tela</button>
-      <span id="fileStatus" class="muted">Sem arquivo</span>
-      <span id="uiStatus" class="muted"></span>
+  <main>
+    <h1 style="margin:8px 0 12px">Seu carrinho</h1>
+    <div id="cartList" class="card"></div>
+
+    <div class="totals">
+      <div class="muted">Itens: <span id="count">0</span></div>
+      <div><strong>Total: R$ <span id="total">0,00</span></strong></div>
     </div>
-    <p class="muted">Exibindo apenas pedidos da <strong>mesa selecionada</strong>.</p>
-    <div id="list" class="card"></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sec" id="clearCart">Limpar carrinho</button>
+      <button class="btn" id="sendOrder">Enviar pedido</button>
+    </div>
+  </main>
+
+  <!-- Tela de envio -->
+  <div id="sendingOverlay">
+    <div class="dots">Enviando pedido</div>
   </div>
-</main>
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGCUpSPkP57IL_lBNcxIgAz1hyevQJqHTMViOPG1Tj4jT4QXw/exec";
-const USER_OK = "montanhesa";
-const PASS_OK = "12montanhesa21";
-
-/* ======== Pegando a MESA via parâmetro ======== */
 const params = new URLSearchParams(location.search);
-const MESA = params.get("cmd") || null;
-document.getElementById("mesaInfo").textContent = MESA ? `🪑 Mesa ${MESA}` : "Todas as mesas (modo geral)";
+const CMD = params.get("cmd") || "0";
+const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
+let cart = loadCart();
+const channel = new BroadcastChannel("pedidos");
 
-const loginBox = document.getElementById("loginBox");
-const panel    = document.getElementById("panel");
+function loadCart(){ try { return JSON.parse(localStorage.getItem(storeCartKey(CMD))) || []; } catch { return []; } }
+function saveCart(){ localStorage.setItem(storeCartKey(CMD), JSON.stringify(cart)); }
+function money(n){ return n.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function totalCart(){ return cart.reduce((s,i)=> s + i.preco*i.qtd, 0); }
+function countCart(){ return cart.reduce((s,i)=> s + i.qtd, 0); }
 
-document.getElementById("btnLogin").onclick = ()=>{
-  const u = document.getElementById("user").value.trim();
-  const p = document.getElementById("pass").value;
-  if (u === USER_OK && p === PASS_OK) {
-    loginBox.classList.add("hidden");
-    panel.classList.remove("hidden");
-    refresh();
+function removeOne(id){ const i=cart.find(x=>x.id===id); if(i){i.qtd--; if(i.qtd<=0) cart=cart.filter(x=>x.id!==id);} saveCart(); render(); }
+function addOne(id){ const i=cart.find(x=>x.id===id); if(i){i.qtd++;} saveCart(); render(); }
+function removeAll(id){ cart=cart.filter(x=>x.id!==id); saveCart(); render(); }
+function clearCart(){ cart=[]; saveCart(); render(); }
+
+function render(){
+  document.getElementById("backLink").href = `index.html?cmd=${encodeURIComponent(CMD)}`;
+  document.getElementById("metaInfo").textContent = `Comanda ${CMD}`;
+  const list = document.getElementById("cartList");
+  list.innerHTML = "";
+
+  if(cart.length===0){
+    list.innerHTML = '<p class="muted">Seu carrinho está vazio.</p>';
   } else {
-    alert("Login inválido.");
-  }
-};
-
-// ====== Ler pedidos da planilha ======
-async function fetchOrders(){
-  try{
-    const res = await fetch(GAS_URL + "?t=" + Date.now());
-    const j = await res.json();
-    if(!j.ok) throw new Error("Formato inválido");
-    let rows = j.rows || [];
-
-    // ✅ FILTRO: mostrar apenas pedidos da mesa selecionada (cmd=X)
-    if (MESA) rows = rows.filter(o => String(o.cmd) === String(MESA));
-
-    return rows;
-  }catch(e){
-    alert("Falha ao buscar pedidos: " + e.message);
-    return [];
-  }
-}
-
-// ====== Exibir pedidos ======
-const listEl = document.getElementById("list");
-const fileStatus = document.getElementById("fileStatus");
-const uiStatus = document.getElementById("uiStatus");
-let fileHandle = null;
-let seenIds = new Set();
-let hideBeforeTs = 0;
-
-document.getElementById("btnRefresh").onclick = refresh;
-
-document.getElementById("btnConnectFile").onclick = async ()=>{
-  try{
-    const today = new Date().toISOString().slice(0,10);
-    fileHandle = await window.showSaveFilePicker({
-      suggestedName: `Pedidos-Mesa${MESA || 'Todas'}-${today}.txt`,
-      types: [{ description: "Texto", accept: {"text/plain": [".txt"]} }]
+    cart.forEach(i=>{
+      const row = document.createElement('div');
+      row.className = "row";
+      const name = document.createElement('div');
+      name.innerHTML = `<strong>${i.nome}</strong><br><span class="muted">R$ ${money(i.preco)}</span>`;
+      const qty = document.createElement('div');
+      qty.className = "qty";
+      const btnMenos = document.createElement('button'); btnMenos.className="chip"; btnMenos.textContent="–"; btnMenos.onclick=()=>removeOne(i.id);
+      const spanQtd = document.createElement('span'); spanQtd.textContent=i.qtd;
+      const btnMais = document.createElement('button'); btnMais.className="chip"; btnMais.textContent="+"; btnMais.onclick=()=>addOne(i.id);
+      qty.append(btnMenos, spanQtd, btnMais);
+      const del = document.createElement('button'); del.className="chip"; del.textContent="Remover"; del.onclick=()=>removeAll(i.id);
+      row.append(name, qty, del);
+      list.append(row);
     });
-    fileStatus.textContent = "Arquivo conectado ✅";
-    seenIds = new Set();
-    await refresh();
-  }catch(e){
-    alert("Não foi possível conectar arquivo: " + e.message);
+  }
+  document.getElementById("total").textContent = money(totalCart());
+  document.getElementById("count").textContent = countCart();
+}
+
+document.getElementById("sendOrder").onclick = async ()=>{
+  if(cart.length===0){ alert("Seu carrinho está vazio."); return; }
+
+  const btn = document.getElementById("sendOrder");
+  const overlay = document.getElementById("sendingOverlay");
+  btn.disabled = true;
+  overlay.style.display = "flex";
+
+  const orderId = `${CMD.padStart(2,'0')}-${Date.now().toString(36).slice(-6).toUpperCase()}`;
+  const payload = {
+    orderId,
+    cmd: CMD,
+    items: cart.map(i => ({ id:i.id, nome:i.nome, qtd:i.qtd, preco:i.preco })),
+    total: totalCart(),
+  };
+
+  try {
+    await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+    channel.postMessage({ type:"novo-pedido", cmd:CMD }); // avisa o admin
+    clearCart();
+    overlay.innerHTML = "<div>✅ Pedido enviado!</div>";
+    setTimeout(()=>overlay.style.display="none", 1500);
+  } catch(e) {
+    overlay.innerHTML = "<div>❌ Falha ao enviar.</div>";
+    setTimeout(()=>overlay.style.display="none", 2000);
+  } finally {
+    btn.disabled = false;
   }
 };
 
-document.getElementById("btnClearScreen").onclick = ()=>{
-  if(!confirm("Tem certeza que deseja limpar a tela? (isso NÃO apaga a planilha nem o arquivo .txt)")) return;
-  hideBeforeTs = Date.now();
-  uiStatus.textContent = "Tela limpa — mostrando apenas pedidos novos.";
-  renderList([]);
-};
-
-function tsValue(x){
-  const d = new Date(x);
-  return isNaN(d.getTime()) ? 0 : d.getTime();
-}
-
-async function refresh(){
-  const orders = await fetchOrders();
-  const visible = hideBeforeTs
-    ? orders.filter(o => tsValue(o.timestamp) > hideBeforeTs)
-    : orders;
-
-  const sortedDesc = visible.slice().sort((a,b)=> tsValue(b.timestamp) - tsValue(a.timestamp));
-  renderList(sortedDesc);
-
-  if(fileHandle){
-    const newOnes = orders
-      .filter(o => o.orderId && !seenIds.has(o.orderId))
-      .sort((a,b)=> tsValue(a.timestamp) - tsValue(b.timestamp));
-
-    if(newOnes.length){
-      const delta = newOnes.map(formatLine).join("");
-      await appendToFile(delta);
-      newOnes.forEach(o => seenIds.add(o.orderId));
-      fileStatus.textContent = `Gravado no arquivo ✅ (+${newOnes.length})`;
-    }
-  }
-}
-
-function renderList(orders){
-  if(orders.length === 0){
-    listEl.innerHTML = '<p class="muted">Sem pedidos.</p>';
-    return;
-  }
-  listEl.innerHTML = orders.map(o=>{
-    const ts = formatDate(o.timestamp);
-    const itens = Array.isArray(o.items)
-      ? o.items.map(i => `<div>• <strong>${i.nome}</strong> x${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}</div>`).join("")
-      : (o.items || "");
-    return `
-      <div class="row">
-        <div><strong>#${o.orderId || '—'}</strong> <span class="muted">(${ts})</span></div>
-        <div>Comanda <strong>${o.cmd}</strong></div>
-        <div style="margin-top:6px">${itens}</div>
-        <div style="margin-top:6px"><strong>Total:</strong> R$ ${(o.total||0).toFixed(2).replace('.',',')}</div>
-      </div>`;
-  }).join("");
-}
-
-function formatLine(o){
-  const ts = formatDate(o.timestamp);
-  const itens = Array.isArray(o.items)
-    ? o.items.map(i => ` - ${i.nome} x${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`).join("\n")
-    : (o.items || "");
-  return `[${ts}] #${o.orderId || '—'} | Cmd ${o.cmd}\n${itens}\nTotal: R$ ${(o.total||0).toFixed(2).replace('.',',')}\n\n`;
-}
-
-function formatDate(ts){
-  try{ return (new Date(ts)).toLocaleString("pt-BR"); }
-  catch{ return String(ts); }
-}
-
-async function appendToFile(text){
-  const writable = await fileHandle.createWritable({ keepExistingData: true });
-  await writable.write(text);
-  await writable.close();
-}
-
-// ====== Auto-refresh ======
-const autoRefresh = document.getElementById('autoRefresh');
-let autoTimer = null;
-autoRefresh?.addEventListener('change', ()=>{
-  if (autoRefresh.checked) {
-    refresh();
-    autoTimer = setInterval(refresh, 5000);
-  } else {
-    clearInterval(autoTimer);
-  }
-});
-window.addEventListener('beforeunload', ()=> clearInterval(autoTimer));
+document.getElementById("clearCart").onclick = clearCart;
+render();
 </script>
 </body>
 </html>
