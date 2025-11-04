@@ -13,9 +13,7 @@
     --acc: #111;
   }
 
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
 
   body {
     margin: 0;
@@ -76,9 +74,7 @@
     padding: 16px;
   }
 
-  h2 {
-    margin: 24px 0 8px;
-  }
+  h2 { margin: 24px 0 8px; }
 
   .grid {
     display: grid;
@@ -91,9 +87,7 @@
     margin-bottom: 10px;
   }
 
-  .item-name {
-    font-weight: 600;
-  }
+  .item-name { font-weight: 600; }
 
   .item-price {
     color: var(--muted);
@@ -108,6 +102,7 @@
     background: #fff;
     cursor: pointer;
     font-size: 0.95rem;
+    transition: all 0.2s ease;
   }
 
   .add:active {
@@ -139,25 +134,16 @@
     border-radius: 10px;
     padding: 10px 12px;
     margin-bottom: 8px;
-    margin-left: 8px; /* leve recuo visual */
+    margin-left: 8px;
   }
 
   /* ======= MOBILE RESPONSIVE ======= */
   @media (max-width: 600px) {
-    body {
-      font-size: 15px;
-    }
+    body { font-size: 15px; }
+    main { padding: 12px; }
+    h2 { font-size: 1.2rem; }
 
-    main {
-      padding: 12px;
-    }
-
-    h2 {
-      font-size: 1.2rem;
-    }
-
-    .grid,
-    .subitem-row {
+    .grid, .subitem-row {
       grid-template-columns: 1fr;
       gap: 6px;
       text-align: left;
@@ -176,13 +162,8 @@
       border-radius: 10px;
     }
 
-    .cart-btn {
-      padding: 6px 10px;
-    }
-
-    .cart-count {
-      font-size: 0.75rem;
-    }
+    .cart-btn { padding: 6px 10px; }
+    .cart-count { font-size: 0.75rem; }
   }
 </style>
 </head>
@@ -248,7 +229,6 @@ const MENU = {
   ]
 };
 
-
 /* ------- PARAMS & STORAGE ------- */
 const params = new URLSearchParams(location.search);
 const CMD = params.get("cmd") || "default";
@@ -268,12 +248,25 @@ function popCartIcon(){
   target.classList.remove('pop-anim'); void target.offsetWidth; target.classList.add('pop-anim');
 }
 
+/* ------- FEEDBACK RÁPIDO ------- */
+function quickFeedback(btn) {
+  const originalText = btn.textContent;
+  btn.textContent = "✔ Adicionado";
+  btn.style.background = "#d1f7d6";
+  btn.style.borderColor = "#7acb89";
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.style.background = "#fff";
+    btn.style.borderColor = "var(--line)";
+  }, 700);
+}
+
 /* ------- LISTAGEM ------- */
 function renderList(containerId, items) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
 
-  // Se for um grupo (objeto com título e subitens)
+  // Grupo (ex: Waffles)
   if (!Array.isArray(items)) {
     items.itens.forEach(item => {
       const row = document.createElement('div');
@@ -301,17 +294,17 @@ function renderList(containerId, items) {
         if(found){ found.qtd += 1; }
         else { cart.push({ id:item.id, nome:fullName, preco:item.preco, qtd:1 }); }
         saveCart(); updateBadge(); popCartIcon();
+        quickFeedback(btn);
       };
 
       right.append(price, btn);
       row.append(name, right);
       el.append(row);
     });
-
     return;
   }
 
-  // Caso normal (lista simples)
+  // Itens comuns
   items.forEach(item => {
     const row = document.createElement('div');
     row.className = "grid";
@@ -337,6 +330,7 @@ function renderList(containerId, items) {
       if(found){ found.qtd += 1; }
       else { cart.push({ id:item.id, nome:item.nome, preco:item.preco, qtd:1 }); }
       saveCart(); updateBadge(); popCartIcon();
+      quickFeedback(btn);
     };
 
     right.append(price, btn);
