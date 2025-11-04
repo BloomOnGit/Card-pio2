@@ -5,29 +5,131 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Cardápio</title>
 <style>
-  :root{--bg:#fafafa;--ink:#111;--muted:#666;--line:#e6e6e6;--acc:#111;}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:10}
-  .brand{display:flex;gap:12px;align-items:center}
-  .info{font-size:.9rem;color:var(--muted)}
-  .cart-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--ink);background:#fff}
-  .cart-count{min-width:20px;height:20px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}
-  main{max-width:900px;margin:0 auto;padding:16px}
-  h2{margin:24px 0 8px}
-  .grid{display:grid;grid-template-columns:1fr auto;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
-  .item-name{font-weight:600}
-  .item-price{color:var(--muted);text-align:right}
-  .add{justify-self:end;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
-  .muted{color:var(--muted);font-size:.9rem}
-  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
-  .pop-anim{animation:pop 280ms ease}
-  /* Subitens (como Waffles) recuados e elegantes */
-  .subitem-group h3 {
-    margin: 12px 0 8px;
-    font-size: 1.1rem;
-    color: #333;
+  :root {
+    --bg: #fafafa;
+    --ink: #111;
+    --muted: #666;
+    --line: #e6e6e6;
+    --acc: #111;
   }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .brand {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .info {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .cart-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--ink);
+    background: #fff;
+  }
+
+  .cart-count {
+    min-width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  h2 {
+    margin: 24px 0 8px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .item-name {
+    font-weight: 600;
+  }
+
+  .item-price {
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .add {
+    justify-self: end;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+
+  .add:active {
+    background: #f2f2f2;
+  }
+
+  .muted {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+
+  .pop-anim {
+    animation: pop 280ms ease;
+  }
+
+  /* Subitens (como Waffles) */
   .subitem-row {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -37,6 +139,50 @@
     border-radius: 10px;
     padding: 10px 12px;
     margin-bottom: 8px;
+    margin-left: 8px; /* leve recuo visual */
+  }
+
+  /* ======= MOBILE RESPONSIVE ======= */
+  @media (max-width: 600px) {
+    body {
+      font-size: 15px;
+    }
+
+    main {
+      padding: 12px;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+    }
+
+    .grid,
+    .subitem-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .item-price {
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    .add {
+      width: 100%;
+      text-align: center;
+      font-weight: 600;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .cart-btn {
+      padding: 6px 10px;
+    }
+
+    .cart-count {
+      font-size: 0.75rem;
+    }
   }
 </style>
 </head>
@@ -80,9 +226,9 @@
 /* ------- CARDÁPIO ------- */
 const MENU = {
   waffles: {
-    titulo: "waffle",
+    titulo: "Waffle",
     itens: [
-      { id:"waffle-mexerica", "nome":"Geléia de mexerica", preco:14.00 },
+      { id:"waffle-mexerica", nome:"Geléia de mexerica", preco:14.00 },
       { id:"waffle-figo", nome:"Geléia de figo com laranja e canela", preco:14.00 },
       { id:"waffle-silvestres", nome:"Geléia de frutas silvestres com aceto balsâmico", preco:14.00 },
     ]
@@ -129,7 +275,6 @@ function renderList(containerId, items) {
 
   // Se for um grupo (objeto com título e subitens)
   if (!Array.isArray(items)) {
-
     items.itens.forEach(item => {
       const row = document.createElement('div');
       row.className = "subitem-row";
@@ -199,7 +344,6 @@ function renderList(containerId, items) {
     el.append(row);
   });
 }
-
 
 /* ------- INIT ------- */
 document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
