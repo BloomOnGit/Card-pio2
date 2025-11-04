@@ -129,9 +129,6 @@ function renderList(containerId, items) {
 
   // Se for um grupo (objeto com título e subitens)
   if (!Array.isArray(items)) {
-    const groupTitle = document.createElement('h3');
-    groupTitle.textContent = items.titulo;
-    el.append(groupTitle);
 
     items.itens.forEach(item => {
       const row = document.createElement('div');
