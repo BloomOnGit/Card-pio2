@@ -12,22 +12,82 @@
     --line:#e6e6e6;
   }
 
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:10}
-  .brand{display:flex;gap:12px;align-items:center}
-  .info{font-size:.9rem;color:var(--muted)}
-  .cart-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--ink);background:#fff;transition:transform .3s ease;}
-  .cart-count{min-width:20px;height:20px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}
-  main{max-width:900px;margin:0 auto;padding:16px}
-  h2{margin:24px 0 8px}
-  .grid{display:grid;grid-template-columns:1fr auto;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
-  .item-name{font-weight:600}
-  .item-price{color:var(--muted);text-align:right}
-  .add{justify-self:end;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:.95rem}
-  .add:active{background:#f2f2f2}
-  .muted{color:var(--muted);font-size:.9rem}
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
 
+  header {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .brand { display: flex; gap: 12px; align-items: center; }
+  .info { font-size: .9rem; color: var(--muted); }
+  .cart-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--ink);
+    background: #fff;
+    transition: transform .3s ease;
+  }
+  .cart-count {
+    min-width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+  }
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  h2 { margin: 24px 0 8px; font-size: 1.3rem; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .item-name { font-weight: 600; }
+  .item-price { color: var(--muted); text-align: right; }
+  .add {
+    justify-self: end;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    cursor: pointer;
+    font-size: .95rem;
+  }
+  .add:active { background: #f2f2f2; }
+  .muted { color: var(--muted); font-size: .9rem; }
+
+  /* Animação do carrinho */
   @keyframes shake {
     0%,100% { transform: translateX(0); }
     20% { transform: translateX(-4px); }
@@ -37,56 +97,70 @@
   }
   .shake { animation: shake 0.4s ease; }
 
-  /* Pop-up da quantidade */
+  /* Pop-up quantidade */
   .overlay {
-    position:fixed;top:0;left:0;width:100%;height:100%;
-    background:rgba(0,0,0,0.4);
-    display:flex;align-items:center;justify-content:center;
-    z-index:999;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
   }
   .popup {
-    background:#fff;
-    border-radius:12px;
-    padding:20px;
-    width:90%;
-    max-width:320px;
-    text-align:center;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    width: 90%;
+    max-width: 340px;
+    text-align: center;
   }
-  .popup h3{margin-bottom:12px;}
+  .popup h3 { margin-bottom: 12px; font-size: 1.1rem; }
   .qty-controls {
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:16px;
-    margin:12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 12px 0;
   }
   .qty-controls button {
-    width:40px;height:40px;
-    font-size:1.4rem;
-    border:none;
-    background:#111;color:#fff;
-    border-radius:10px;
-    cursor:pointer;
+    width: 46px; height: 46px;
+    font-size: 1.4rem;
+    border: none;
+    background: #111; color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
   }
-  .qty-value {font-size:1.5rem;font-weight:700;}
+  .qty-value { font-size: 1.6rem; font-weight: 700; }
   .popup-actions {
-    display:flex;
-    justify-content:space-between;
-    gap:8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
   }
   .popup-actions button {
-    flex:1;
-    padding:10px;
-    font-size:1rem;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
+    flex: 1;
+    padding: 12px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
   }
   .popup-actions .confirm {
-    background:#111;color:#fff;
+    background: #111; color: #fff;
   }
   .popup-actions .cancel {
-    background:#eee;color:#111;
+    background: #eee; color: #111;
+  }
+
+  /* Mobile ajustes */
+  @media (max-width: 600px) {
+    main { padding: 12px; }
+    h2 { font-size: 1.1rem; }
+    .grid { grid-template-columns: 1fr; gap: 6px; }
+    .add { width: 100%; text-align: center; padding: 10px; font-weight: 600; }
+    .item-price { text-align: left; }
   }
 </style>
 </head>
@@ -107,27 +181,26 @@
 
     <section>
       <h2>Waffles</h2>
-      <div id="list-waffles" class="subitem-group"></div>
+      <div id="list-waffles"></div>
     </section>
 
     <section>
       <h2>Cafés</h2>
-      <div class="grid" id="list-cafes"></div>
+      <div id="list-cafes"></div>
     </section>
 
     <section>
       <h2>Bebidas Frias</h2>
-      <div class="grid" id="list-frias"></div>
+      <div id="list-frias"></div>
     </section>
 
     <section>
       <h2>Lanches</h2>
-      <div class="grid" id="list-lanches"></div>
+      <div id="list-lanches"></div>
     </section>
   </main>
 
 <script>
-/* ------- CARDÁPIO ------- */
 const MENU = {
   waffles: {
     titulo: "Waffle",
@@ -152,7 +225,6 @@ const MENU = {
   ]
 };
 
-/* ------- STORAGE ------- */
 const params = new URLSearchParams(location.search);
 const CMD = params.get("cmd") || "default";
 const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
@@ -166,12 +238,12 @@ function updateBadge(){
   document.getElementById("cartCount").textContent = c;
 }
 function shakeCart(){
-  const cart = document.getElementById('cartLink');
-  cart.classList.add('shake');
-  setTimeout(()=> cart.classList.remove('shake'), 400);
+  const cartEl = document.getElementById('cartLink');
+  cartEl.classList.add('shake');
+  setTimeout(()=> cartEl.classList.remove('shake'), 400);
 }
 
-/* ------- POPUP DE QUANTIDADE ------- */
+/* Popup quantidade */
 function showQuantityPopup(item, fullName){
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
@@ -196,7 +268,6 @@ function showQuantityPopup(item, fullName){
   const qtyValue = popup.querySelector('#qtyValue');
   popup.querySelector('#minus').onclick = ()=> { if(qty>1){ qty--; qtyValue.textContent=qty; } };
   popup.querySelector('#plus').onclick = ()=> { qty++; qtyValue.textContent=qty; };
-
   popup.querySelector('#cancelBtn').onclick = ()=> overlay.remove();
   popup.querySelector('#confirmBtn').onclick = ()=>{
     const found = cart.find(x=>x.id===item.id);
@@ -207,7 +278,7 @@ function showQuantityPopup(item, fullName){
   };
 }
 
-/* ------- LISTAGEM ------- */
+/* Renderização */
 function renderList(containerId, items){
   const el = document.getElementById(containerId);
   el.innerHTML = "";
@@ -216,25 +287,20 @@ function renderList(containerId, items){
     items.itens.forEach(item=>{
       const row = document.createElement('div');
       row.className = "grid";
-
       const name = document.createElement('div');
       name.className = "item-name";
       name.textContent = `${items.titulo} — ${item.nome}`;
-
       const right = document.createElement('div');
       right.style.display = "flex";
       right.style.alignItems = "center";
       right.style.gap = "8px";
-
       const price = document.createElement('div');
       price.className = "item-price";
       price.textContent = "R$ " + money(item.preco);
-
       const btn = document.createElement('button');
       btn.className = "add";
       btn.textContent = "+ Adicionar";
       btn.onclick = ()=> showQuantityPopup(item, `${items.titulo} — ${item.nome}`);
-
       right.append(price, btn);
       row.append(name, right);
       el.append(row);
@@ -245,32 +311,27 @@ function renderList(containerId, items){
   items.forEach(item=>{
     const row = document.createElement('div');
     row.className = "grid";
-
     const name = document.createElement('div');
     name.className = "item-name";
     name.textContent = item.nome;
-
     const right = document.createElement('div');
     right.style.display = "flex";
     right.style.alignItems = "center";
     right.style.gap = "8px";
-
     const price = document.createElement('div');
     price.className = "item-price";
     price.textContent = "R$ " + money(item.preco);
-
     const btn = document.createElement('button');
     btn.className = "add";
     btn.textContent = "+ Adicionar";
     btn.onclick = ()=> showQuantityPopup(item, item.nome);
-
     right.append(price, btn);
     row.append(name, right);
     el.append(row);
   });
 }
 
-/* ------- INIT ------- */
+/* Init */
 document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
 document.getElementById("cartLink").href = `carrinho.html?cmd=${encodeURIComponent(CMD)}`;
 renderList("list-waffles", MENU.waffles);
