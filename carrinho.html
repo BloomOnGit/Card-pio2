@@ -5,22 +5,81 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Carrinho</title>
 <style>
-  :root{--bg:#fafafa;--ink:#111;--muted:#666;--line:#e6e6e6;--acc:#111;}
-  *{box-sizing:border-box}
-  body{margin:0;background:#fafafa;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e6e6e6;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:10}
-  a{text-decoration:none;color:inherit}
-  .meta{font-size:.9rem;color:#666}
-  main{max-width:900px;margin:0 auto;padding:16px}
-  .row{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center;padding:12px 0;border-bottom:1px solid #e6e6e6;background:#fff}
-  .muted{color:#666}
-  .chip{border:1px solid #e6e6e6;border-radius:999px;padding:4px 8px;background:#fff;cursor:pointer}
-  .qty{display:inline-flex;gap:8px;align-items:center}
-  .totals{display:flex;justify-content:space-between;align-items:center;padding:16px 0}
-  .btn{display:inline-block;padding:12px 16px;border-radius:10px;border:none;background:#111;color:#fff;font-weight:700;text-align:center;cursor:pointer}
-  .btn.sec{background:#fff;color:#111;border:1px solid #e6e6e6}
-  .btn[disabled]{opacity:.6;cursor:not-allowed}
-  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;margin:14px 0}
+  :root {
+    --bg:#fafafa;
+    --ink:#111;
+    --muted:#666;
+    --line:#e6e6e6;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    background:#fafafa;
+    color:#111;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  header {
+    position:sticky;top:0;background:#fff;
+    border-bottom:1px solid #e6e6e6;
+    padding:12px 16px;
+    display:flex;align-items:center;justify-content:space-between;
+    z-index:10;
+  }
+  a { text-decoration:none;color:inherit; }
+  .meta { font-size:.9rem;color:#666; }
+  main { max-width:900px;margin:0 auto;padding:16px; }
+  .row {
+    display:grid;
+    grid-template-columns:1fr auto auto;
+    gap:8px 12px;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid #e6e6e6;
+    background:#fff;
+  }
+  .muted{color:#666;}
+  .chip{
+    border:1px solid #e6e6e6;
+    border-radius:999px;
+    padding:4px 8px;
+    background:#fff;
+    cursor:pointer;
+  }
+  .qty{display:inline-flex;gap:8px;align-items:center;}
+  .totals{display:flex;justify-content:space-between;align-items:center;padding:16px 0;}
+  .btn{
+    display:inline-block;
+    padding:12px 16px;
+    border-radius:10px;
+    border:none;
+    background:#111;
+    color:#fff;
+    font-weight:700;
+    text-align:center;
+    cursor:pointer;
+  }
+  .btn.sec{background:#fff;color:#111;border:1px solid #e6e6e6;}
+  .btn[disabled]{opacity:.6;cursor:not-allowed;}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;margin:14px 0;}
+
+  /* Tela de carregamento */
+  .overlay {
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(255,255,255,0.85);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9999;
+    flex-direction:column;
+  }
+  .dots {
+    font-size:2rem;
+    letter-spacing:4px;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink {
+    0%, 20% { opacity:0; }
+    50% { opacity:1; }
+    100% { opacity:0; }
+  }
 </style>
 </head>
 <body>
@@ -45,14 +104,13 @@
   </main>
 
 <script>
-/* ------- CONFIG: sua URL do Apps Script (termina com /exec) ------- */
+/* ------- CONFIG ------- */
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGCUpSPkP57IL_lBNcxIgAz1hyevQJqHTMViOPG1Tj4jT4QXw/exec";
 
 /* ------- PARAMS & STORAGE ------- */
 const params = new URLSearchParams(location.search);
 const CMD = params.get("cmd") || "0";
 const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
-
 let cart = loadCart();
 
 function loadCart(){ try { return JSON.parse(localStorage.getItem(storeCartKey(CMD))) || []; } catch { return []; } }
@@ -122,21 +180,28 @@ function render(){
   document.getElementById("count").textContent = countCart();
 }
 
+/* ------- LOADING SCREEN ------- */
+function showLoadingScreen() {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="dots">...</div>`;
+  document.body.append(overlay);
+  return overlay;
+}
+
 /* ------- ENVIAR PEDIDO DIRETO ------- */
+let sending = false;
 document.getElementById("sendOrder").onclick = async ()=>{
+  if(sending) return;
   if(cart.length===0){ alert("Seu carrinho está vazio."); return; }
 
+  sending = true;
+  const sendBtn = document.getElementById("sendOrder");
+  sendBtn.disabled = true;
+
+  const overlay = showLoadingScreen();
+
   const orderId = `${CMD.padStart(2,'0')}-${Date.now().toString(36).slice(-6).toUpperCase()}`;
-  const linhas = cart.map(i=>`• ${i.nome} x${i.qtd} — R$ ${money(i.preco*i.qtd)}`).join('\n');
-  const msg =
-`🧾 Pedido #${orderId}
-Comanda: ${CMD}
-
-${linhas}
-
-Total: R$ ${money(totalCart())}`;
-
-  // Envia para Google Apps Script
   const payload = {
     orderId,
     cmd: CMD,
@@ -146,13 +211,17 @@ Total: R$ ${money(totalCart())}`;
 
   try {
     await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+    clearCart();
+    overlay.remove();
+    alert("Pedido enviado com sucesso!");
   } catch (e) {
-    console.warn("Falha ao enviar para planilha:", e);
+    overlay.remove();
+    alert("Falha ao enviar pedido. Tente novamente.");
+    console.warn("Erro:", e);
+  } finally {
+    sending = false;
+    sendBtn.disabled = false;
   }
-
-  // Limpa e feedback
-  clearCart();
-  alert("Pedido enviado!");
 };
 
 /* ------- INIT ------- */
