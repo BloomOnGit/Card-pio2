@@ -87,7 +87,6 @@
   .add:active { background: #f2f2f2; }
   .muted { color: var(--muted); font-size: .9rem; }
 
-  /* Animação do carrinho */
   @keyframes shake {
     0%,100% { transform: translateX(0); }
     20% { transform: translateX(-4px); }
@@ -97,7 +96,7 @@
   }
   .shake { animation: shake 0.4s ease; }
 
-  /* Pop-up quantidade */
+  /* Popup quantidade */
   .overlay {
     position: fixed;
     top: 0; left: 0;
@@ -147,14 +146,9 @@
     border-radius: 10px;
     cursor: pointer;
   }
-  .popup-actions .confirm {
-    background: #111; color: #fff;
-  }
-  .popup-actions .cancel {
-    background: #eee; color: #111;
-  }
+  .popup-actions .confirm { background: #111; color: #fff; }
+  .popup-actions .cancel { background: #eee; color: #111; }
 
-  /* Mobile ajustes */
   @media (max-width: 600px) {
     main { padding: 12px; }
     h2 { font-size: 1.1rem; }
@@ -180,8 +174,8 @@
     <p class="muted">Escolha os itens e adicione ao carrinho. Depois, finalize na página do carrinho.</p>
 
     <section>
-      <h2>Waffles</h2>
-      <div id="list-waffles"></div>
+      <h2>Pães</h2>
+      <div id="list-paes"></div>
     </section>
 
     <section>
@@ -190,18 +184,36 @@
     </section>
 
     <section>
-      <h2>Bebidas Frias</h2>
-      <div id="list-frias"></div>
+      <h2>Cafés Gelados</h2>
+      <div id="list-gelados"></div>
     </section>
 
     <section>
-      <h2>Lanches</h2>
-      <div id="list-lanches"></div>
+      <h2>Waffles</h2>
+      <div id="list-waffles"></div>
     </section>
   </main>
 
 <script>
 const MENU = {
+  paes: [
+    { id:"pao-chapa", nome:"Pão na chapa (Manteiga Serra Mineira)", preco:4.00 },
+    { id:"pao-ovo", nome:"Pão com ovo", preco:6.00 },
+    { id:"pao-requeijao", nome:"Pão com requeijão (crostinha)", preco:7.00 },
+    { id:"pao-julieta", nome:"Pão com requeijão e goiabada (crostinha julieta)", preco:8.00 },
+    { id:"pao-nutella", nome:"Pão com Nutella", preco:10.00 },
+  ],
+  cafes: [
+    { id:"espresso-curto", nome:"Espresso (curto) (~50 ml)", preco:3.00 },
+    { id:"espresso-longo", nome:"Espresso (longo) (~100 ml)", preco:6.00 },
+    { id:"cappuccino", nome:"Cappuccino (~280 ml)", preco:10.00 },
+    { id:"latte", nome:"Latte (~280 ml)", preco:9.00 },
+    { id:"mocha", nome:"Chocolate Mocha (~280 ml)", preco:10.00 },
+  ],
+  gelados: [
+    { id:"shake-doce-de-leite", nome:"Shake café gelado doce de leite (~400 ml)", preco:0 },
+    { id:"shake-avela", nome:"Shake café gelado Avelã (~400 ml)", preco:0 },
+  ],
   waffles: {
     titulo: "Waffle",
     itens: [
@@ -209,20 +221,7 @@ const MENU = {
       { id:"waffle-figo", nome:"Geléia de figo, laranja e canela", preco:14.00 },
       { id:"waffle-silvestres", nome:"Geléia de frutas silvestres com aceto balsâmico", preco:14.00 },
     ]
-  },
-  cafes: [
-    { id:"espresso", nome:"Espresso", preco:6.00 },
-    { id:"cappuccino", nome:"Cappuccino", preco:9.00 },
-    { id:"latte", nome:"Latte", preco:10.00 }
-  ],
-  frias: [
-    { id:"matcha", nome:"Matcha Gelado", preco:12.00 },
-    { id:"iced-latte", nome:"Iced Latte", preco:11.00 }
-  ],
-  lanches: [
-    { id:"pao-chapa", nome:"Pão na Chapa", preco:7.00 },
-    { id:"torta", nome:"Torta do Dia", preco:9.50 }
-  ]
+  }
 };
 
 const params = new URLSearchParams(location.search);
@@ -243,7 +242,6 @@ function shakeCart(){
   setTimeout(()=> cartEl.classList.remove('shake'), 400);
 }
 
-/* Popup quantidade */
 function showQuantityPopup(item, fullName){
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
@@ -278,11 +276,9 @@ function showQuantityPopup(item, fullName){
   };
 }
 
-/* Renderização */
 function renderList(containerId, items){
   const el = document.getElementById(containerId);
   el.innerHTML = "";
-
   if(!Array.isArray(items)){
     items.itens.forEach(item=>{
       const row = document.createElement('div');
@@ -307,7 +303,6 @@ function renderList(containerId, items){
     });
     return;
   }
-
   items.forEach(item=>{
     const row = document.createElement('div');
     row.className = "grid";
@@ -331,13 +326,12 @@ function renderList(containerId, items){
   });
 }
 
-/* Init */
 document.getElementById("comandaInfo").textContent = "Comanda " + CMD;
 document.getElementById("cartLink").href = `carrinho.html?cmd=${encodeURIComponent(CMD)}`;
-renderList("list-waffles", MENU.waffles);
+renderList("list-paes", MENU.paes);
 renderList("list-cafes", MENU.cafes);
-renderList("list-frias", MENU.frias);
-renderList("list-lanches", MENU.lanches);
+renderList("list-gelados", MENU.gelados);
+renderList("list-waffles", MENU.waffles);
 updateBadge();
 </script>
 </body>
