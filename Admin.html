@@ -141,6 +141,14 @@ async function checkForNewOrders(){
 setInterval(checkForNewOrders,10000);
 checkForNewOrders();
 
+  /* ===== REFRESH ANALÓGICO ===== */
+setInterval(()=>{
+  // Só recarrega se o painel estiver visível (ou seja, logado)
+  if(!document.getElementById("panel").classList.contains("hidden")){
+    location.reload(); // exatamente igual ao F5
+  }
+}, 10000); // tempo em milissegundos (10 segundos)
+
   
 </script>
 </body>
