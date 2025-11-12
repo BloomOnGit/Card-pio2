@@ -35,10 +35,12 @@
 <main>
   <h1 style="margin:8px 0 12px">Seu carrinho</h1>
   <div id="cartList" class="card"></div>
+
   <div class="totals">
     <div class="muted">Itens: <span id="count">0</span></div>
     <div><strong>Total: R$ <span id="total">0,00</span></strong></div>
   </div>
+
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn sec" id="clearCart">Limpar carrinho</button>
     <button class="btn" id="sendOrder">Enviar pedido</button>
@@ -48,63 +50,114 @@
 <div id="sendingOverlay"><div class="dots">Enviando pedido</div></div>
 
 <script>
-const GAS_URL="https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGCUpSPkP57IL_lBNcxIgAz1hyevQJqHTMViOPG1Tj4jT4QXw/exec";
-const params=new URLSearchParams(location.search);
-const CMD=params.get("cmd")||"0";
-const storeCartKey=(cmd)=>`cart_for_cmd_${cmd}`;
-let cart=loadCart();
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzrrsvUfTaYUXVVFH6lTcGCUpSPkP57IL_lBNcxIgAz1hyevQJqHTMViOPG1Tj4jT4QXw/exec";
+const params = new URLSearchParams(location.search);
+const CMD = params.get("cmd") || "0";
+const storeCartKey = (cmd)=> `cart_for_cmd_${cmd}`;
+let cart = loadCart();
 
-function loadCart(){try{return JSON.parse(localStorage.getItem(storeCartKey(CMD)))||[];}catch{return[];}}
-function saveCart(){localStorage.setItem(storeCartKey(CMD),JSON.stringify(cart));}
-function money(n){return n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
-function totalCart(){return cart.reduce((s,i)=>s+i.preco*i.qtd,0);}
-function countCart(){return cart.reduce((s,i)=>s+i.qtd,0);}
-function removeOne(id){const i=cart.find(x=>x.id===id);if(i){i.qtd--;if(i.qtd<=0)cart=cart.filter(x=>x.id!==id);}saveCart();render();}
-function addOne(id){const i=cart.find(x=>x.id===id);if(i){i.qtd++;}saveCart();render();}
-function removeAll(id){cart=cart.filter(x=>x.id!==id);saveCart();render();}
-function clearCart(){cart=[];saveCart();render();}
+function loadCart(){ try { return JSON.parse(localStorage.getItem(storeCartKey(CMD))) || []; } catch { return []; } }
+function saveCart(){ localStorage.setItem(storeCartKey(CMD), JSON.stringify(cart)); }
+function money(n){ return n.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function totalCart(){ return cart.reduce((s,i)=> s + i.preco*i.qtd, 0); }
+function countCart(){ return cart.reduce((s,i)=> s + i.qtd, 0); }
+function removeOne(id){ const i=cart.find(x=>x.id===id); if(i){ i.qtd--; if(i.qtd<=0) cart=cart.filter(x=>x.id!==id); } saveCart(); render(); }
+function addOne(id){ const i=cart.find(x=>x.id===id); if(i){ i.qtd++; } saveCart(); render(); }
+function removeAll(id){ cart=cart.filter(x=>x.id!==id); saveCart(); render(); }
+function clearCart(){ cart=[]; saveCart(); render(); }
 
 function render(){
-  document.getElementById("backLink").href=`index.html?cmd=${encodeURIComponent(CMD)}`;
-  document.getElementById("metaInfo").textContent=`Comanda ${CMD}`;
-  const list=document.getElementById("cartList");list.innerHTML="";
-  if(!cart.length){list.innerHTML='<p class="muted">Seu carrinho está vazio.</p>';}
-  else cart.forEach(i=>{
-    const row=document.createElement('div');row.className="row";
-    const name=document.createElement('div');name.innerHTML=`<strong>${i.nome}</strong><br><span class="muted">R$ ${money(i.preco)}</span>`;
-    const qty=document.createElement('div');qty.className="qty";
-    const btnMenos=document.createElement('button');btnMenos.className="chip";btnMenos.textContent="–";btnMenos.onclick=()=>removeOne(i.id);
-    const spanQtd=document.createElement('span');spanQtd.textContent=i.qtd;
-    const btnMais=document.createElement('button');btnMais.className="chip";btnMais.textContent="+";btnMais.onclick=()=>addOne(i.id);
-    qty.append(btnMenos,spanQtd,btnMais);
-    const del=document.createElement('button');del.className="chip";del.textContent="Remover";del.onclick=()=>removeAll(i.id);
-    row.append(name,qty,del);list.append(row);
-  });
-  document.getElementById("total").textContent=money(totalCart());
-  document.getElementById("count").textContent=countCart();
+  document.getElementById("backLink").href = `index.html?cmd=${encodeURIComponent(CMD)}`;
+  document.getElementById("metaInfo").textContent = `Comanda ${CMD}`;
+  const list = document.getElementById("cartList");
+  list.innerHTML = "";
+
+  if(cart.length===0){
+    list.innerHTML = '<p class="muted">Seu carrinho está vazio.</p>';
+  } else {
+    cart.forEach(i=>{
+      const row = document.createElement('div');
+      row.className = "row";
+      const name = document.createElement('div');
+      name.innerHTML = `<strong>${i.nome}</strong><br><span class="muted">R$ ${money(i.preco)}</span>`;
+      const qty = document.createElement('div'); qty.className = "qty";
+      const btnMenos = document.createElement('button'); btnMenos.className = "chip"; btnMenos.textContent="–"; btnMenos.onclick=()=>removeOne(i.id);
+      const spanQtd = document.createElement('span'); spanQtd.textContent = i.qtd;
+      const btnMais = document.createElement('button'); btnMais.className = "chip"; btnMais.textContent="+"; btnMais.onclick=()=>addOne(i.id);
+      qty.append(btnMenos, spanQtd, btnMais);
+      const del = document.createElement('button'); del.className="chip"; del.textContent="Remover"; del.onclick=()=>removeAll(i.id);
+      row.append(name, qty, del);
+      list.append(row);
+    });
+  }
+  document.getElementById("total").textContent = money(totalCart());
+  document.getElementById("count").textContent = countCart();
 }
 
-document.getElementById("sendOrder").onclick=async()=>{
-  if(!cart.length){alert("Seu carrinho está vazio.");return;}
-  const btn=document.getElementById("sendOrder");
-  const overlay=document.getElementById("sendingOverlay");
-  btn.disabled=true;overlay.style.display="flex";
-  const orderId=`${CMD.padStart(2,'0')}-${Date.now().toString(36).slice(-6).toUpperCase()}`;
-  const payload={orderId,cmd:CMD,items:cart.map(i=>({id:i.id,nome:i.nome,qtd:i.qtd,preco:i.preco})),total:totalCart()};
+/* SMALL UTILS */
+function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+/* POST + PING robusto
+ - envia POST, aguarda resposta OK;
+ - tenta notificar /?ping=1 com retries exponenciais
+*/
+document.getElementById("sendOrder").onclick = async ()=>{
+  if(cart.length === 0){ alert("Seu carrinho está vazio."); return; }
+
+  const btn = document.getElementById("sendOrder");
+  const overlay = document.getElementById("sendingOverlay");
+  btn.disabled = true;
+  overlay.style.display = "flex";
+  overlay.innerHTML = '<div class="dots">Enviando pedido</div>';
+
+  const orderId = `${CMD.padStart(2,'0')}-${Date.now().toString(36).slice(-6).toUpperCase()}`;
+  const payload = {
+    orderId,
+    cmd: CMD,
+    items: cart.map(i => ({ id:i.id, nome:i.nome, qtd:i.qtd, preco:i.preco })),
+    total: totalCart(),
+  };
 
   try{
-    await fetch(GAS_URL,{method:"POST",body:JSON.stringify(payload)});
-    await fetch(GAS_URL+"?ping=1"); // notifica admin
+    // 1) enviar POST
+    const postResp = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+    if(!postResp.ok) throw new Error("Falha no envio: " + postResp.status);
+
+    // 2) tentar notificar o ping com retries
+    let pingOk = false;
+    const maxAttempts = 5;
+    let attempt = 0;
+    while(!pingOk && attempt < maxAttempts){
+      attempt++;
+      try{
+        const r = await fetch(GAS_URL + "?ping=1&t=" + Date.now(), { method: "GET", cache: "no-store" });
+        if(r.ok){
+          // some deployments retornam "pong" ou texto vazio, consideramos ok se status 200
+          pingOk = true;
+          break;
+        }
+      }catch(err){
+        console.warn("ping attempt", attempt, "falhou:", err);
+      }
+      // espera exponencial curta antes de tentar de novo
+      await sleep(300 * attempt);
+    }
+
+    // feedback ao usuário
     clearCart();
-    overlay.innerHTML="<div>✅ Pedido enviado!</div>";
-    setTimeout(()=>overlay.style.display="none",1500);
-  }catch(e){
-    overlay.innerHTML="<div>❌ Falha ao enviar.</div>";
-    setTimeout(()=>overlay.style.display="none",2000);
-  }finally{btn.disabled=false;}
+    overlay.innerHTML = `<div>✅ Pedido enviado${pingOk ? '' : ' (ping não confirmado)'}!</div>`;
+    // esconder overlay depois
+    setTimeout(()=> overlay.style.display = "none", 1500);
+  } catch (err) {
+    console.error("Erro ao enviar pedido:", err);
+    overlay.innerHTML = "<div>❌ Falha ao enviar. Tente novamente.</div>";
+    setTimeout(()=> overlay.style.display = "none", 2000);
+  } finally {
+    btn.disabled = false;
+  }
 };
 
-document.getElementById("clearCart").onclick=clearCart;
+document.getElementById("clearCart").onclick = clearCart;
 render();
 </script>
 </body>
